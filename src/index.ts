@@ -26,31 +26,31 @@ app.get('/', (req:Request, res:Response) => {
 
 io.on('connection', (socket) => {
   console.log('connecting')
-  const socketIdsInRoom = async (roomID: string) => {
-    const sockets = await io.in(roomID).allSockets();
-    console.log('sockets => ',sockets);
-    return Array.from(sockets);
-  };
-  const findNowRoom = (client: any) => {
-    return Object.keys(client.rooms).find(item => {
-      return item !== client.id
-    });
-  }
-  socket.on('join', async (roomID) => {
-    try {
-      socket.join(roomID);
-    } catch (error) {
-      console.error('Error getting clients in room:', error);
-    }
+  socket.on('join', (room) => {
+    console.log('join');
+    socket.join(room);
+    socket.to(room).emit('ready', '準備通話');
   });
 
-  socket.on("exchange", data => {
-    const nowRoom = findNowRoom(socket);
-    socket.to(String(nowRoom)).emit('exchange', data)
+  // 轉傳 Offer
+  socket.on('offer', (room, description) => {
+      socket.to(room).emit('offer', description);
   });
-  socket.on("disconnect", async () => {
-    console.log('disconnect');
-    
+
+  // 轉傳 Answer
+  socket.on('answer', (room, description) => {
+      socket.to(room).emit('answer', description);
+  });
+
+  // 交換 ice candidate
+  socket.on('ice_candidate', (room, data) => {
+      socket.to(room).emit('ice_candidate', data);
+  });
+
+  // 關閉通話
+  socket.on('hangup', (room) => {
+      console.log('hangup');
+      socket.leave(room);
   });
 })
 
